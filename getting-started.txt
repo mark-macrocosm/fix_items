@@ -1,0 +1,222 @@
+<?php
+
+/**
+ * Please fix the items marked with "@TODO" in this class
+ *
+ * Follow the https://www.php-fig.org/psr/psr-2/ coding style guide.
+ *
+ * One exception to PSR-2: opening braces MUST always be on the same line
+ * for classes, methods, functions, and control structures
+ */
+class Singleton {
+
+    /** @var $instance */
+    private static $instance;
+
+    /** @var string */
+    protected $property1 = 'A';
+
+    /** @var string */
+    protected $property2 = 'B';
+
+    /**
+     * Is not allowed to call from outside to prevent from creating multiple instances,
+     * to use the singleton, you have to obtain the instance from Singleton::getInstance() instead
+     */
+    protected function __construct() {
+    }
+
+    /**
+     * Prevent from being cloned (which would create a second instance of it)
+     *
+     * @return void
+     */
+    protected function __clone() {
+    }
+
+    /**
+     * Prevent from being unserialized (which would create a second instance of it)
+     *
+     * @return mixed
+     * @throws Exception
+     */
+    public function __wakeup() {
+        throw new \RuntimeException("Cannot unserialize singleton");
+    }
+
+    /**
+     * @return Singleton
+     */
+    public static function getInstance(): Singleton {
+        if (!isset(self::$instance)) {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * Display user name
+     *
+     * @param string $name User-provided name
+     * @return mixed|string
+     */
+    public function userEcho($name) {
+        if (empty($name)) {
+            return 'Invalid user-provided name';
+        }
+
+        return filter_var($name, FILTER_SANITIZE_STRING);
+    }
+
+    /**
+     * Query by user name
+     *
+     * @param $name
+     * @return int
+     */
+    public function userQuery($name) {
+        //@todo Move mysqli() to another class, for example Connection.php
+        $mysqli = new mysqli('localhost', 'user', 'pass', 'my_database');
+        $stmt = $mysqli->prepare("SELECT column1, colum2 FROM `test` WHERE `name` = ? LIMIT 1");
+        $stmt->bind_param("s", $name);
+        $stmt->execute();
+        $stmt->store_result();
+
+        return printf("%d rows found.\n", $stmt->num_rows());
+    }
+
+    /**
+     * Output the contents of a file
+     *
+     * @param string $path User-provided file path
+     */
+    public function userFile($path) {
+        if (empty($path)) {
+            header("HTTP/1.0 400 Bad Request");
+            exit;
+        }
+
+        if (!file_exists($path) || !is_file($path)) {
+            header("HTTP/1.0 404 Not Found");
+            exit;
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . basename($path) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit();
+    }
+
+    /**
+     * Nested conditions, untangle nested conditions
+     *
+     * @param $conditionA
+     * @param $conditionB
+     * @param $conditionC
+     * @return string
+     */
+    public function nestedConditions($conditionA, $conditionB, $conditionC) {
+        if ($conditionA && $conditionB && $conditionC) {
+            return 'ABC';
+        }
+
+        if (!$conditionA) {
+            return '^A';
+        }
+
+        if ($conditionA && !$conditionB) {
+            return '^B';
+        }
+
+        if ($conditionA && $conditionB && !$conditionC) {
+            return '^C';
+        }
+
+        return 'undefined';
+    }
+
+    /**
+     * Return statements
+     *
+     * @param $conditionA
+     * @return bool
+     */
+    public function returnStatements($conditionA) {
+        return $conditionA ? true : false;
+    }
+
+    /**
+     * Null coalescing
+     *
+     * @return string
+     */
+    public function nullCoalescing() {
+        return $_GET['name'] ?? $_POST['name'] ?? 'nobody';
+    }
+
+    /**
+     * Method chaining
+     *
+     * @return $this
+     */
+    public function methodChained(): Singleton {
+        return $this;
+    }
+
+    /**
+     * Immutables are hard to find
+     *
+     * @param $value
+     * @return mixed
+     */
+    public function checkValue($value) {
+        if (!property_exists($this, $value)) {
+            throw new \RuntimeException(sprintf("Property %s not found.", $value));
+        }
+
+        return $this->{$value};
+    }
+
+    /**
+     * Change value to immutable object
+     *
+     * @param $key
+     * @param $value
+     * @return mixed
+     */
+    public function __set($key, $value) {
+        throw new \RuntimeException( sprintf("Cannot change value of immutable object: %s with value %s", $key, $value));
+    }
+
+    /**
+     * @param string $propertyName
+     * @return mixed
+     */
+    public function __get(string $propertyName) {
+        return $this->$propertyName;
+    }
+
+    /**
+     * Check a string is a 24 hour time
+     *
+     * @param string $time24Hour
+     * @return bool
+     * @example "00:00:00", "23:59:59", "20:15"
+     */
+    public function regexTest(string $time24Hour) {
+        if (empty($time24Hour)) {
+            return false;
+        }
+        $time24Hour = filter_var($time24Hour, FILTER_SANITIZE_STRING);
+
+        return preg_match('#^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$#', $time24Hour);
+    }
+
+}
+
