@@ -10,14 +10,27 @@
  */
 class Singleton {
 
-    /** @var $instance */
-    private static $instance;
+    /**
+     * Use descriptive multi-line comments for properties and constants
+     * Prefix protected and private properties/methods with underscore
+     * 
+     * @var Singleton
+     */
+    protected static $_instance;
 
-    /** @var string */
-    protected $property1 = 'A';
-
-    /** @var string */
-    protected $property2 = 'B';
+    /**
+     * Use constants for immutable types instead of variables
+     * Use descriptive names
+     */
+    const STRING_A     = 'A';
+    const STRING_A_LONG = 'stringA';
+    const STRING_B_LONG = 'stringB';
+    const STRING_NON_A = '^A';
+    const STRING_NON_B = '^B';
+    const STRING_NON_C = '^C';
+    const STRING_ABC   = 'ABC';
+    const INT_A = 1;
+    const INT_B = 2;
 
     /**
      * Is not allowed to call from outside to prevent from creating multiple instances,
@@ -45,14 +58,16 @@ class Singleton {
     }
 
     /**
+     * Get a singleton instance
+     * 
      * @return Singleton
      */
     public static function getInstance(): Singleton {
-        if (!isset(self::$instance)) {
-            self::$instance = new self();
+        if (!isset(self::$_instance)) {
+            self::$_instance = new self();
         }
 
-        return self::$instance;
+        return self::$_instance;
     }
 
     /**
@@ -62,28 +77,27 @@ class Singleton {
      * @return mixed|string
      */
     public function userEcho($name) {
-        if (empty($name)) {
+        // Validate type and length
+        if (!is_string($name) || !strlen($name)) {
             return 'Invalid user-provided name';
         }
-
-        return filter_var($name, FILTER_SANITIZE_STRING);
+        
+        // The function should still echo the name
+        echo filter_var($name, FILTER_SANITIZE_STRING);
     }
 
     /**
      * Query by user name
      *
-     * @param $name
-     * @return int
+     * @param string $name User-provided name
      */
     public function userQuery($name) {
-        //@todo Move mysqli() to another class, for example Connection.php
         $mysqli = new mysqli('localhost', 'user', 'pass', 'my_database');
-        $stmt = $mysqli->prepare("SELECT column1, colum2 FROM `test` WHERE `name` = ? LIMIT 1");
+        
+        // Don't change the query
+        $stmt = $mysqli->prepare("SELECT * FROM `test` WHERE `name` = ? LIMIT 1");
         $stmt->bind_param("s", $name);
         $stmt->execute();
-        $stmt->store_result();
-
-        return printf("%d rows found.\n", $stmt->num_rows());
     }
 
     /**
@@ -92,25 +106,28 @@ class Singleton {
      * @param string $path User-provided file path
      */
     public function userFile($path) {
-        if (empty($path)) {
-            header("HTTP/1.0 400 Bad Request");
-            exit;
+        // User paths are relative to this root
+        $root = '/real/path/to/files';
+        
+        // The main point is to never allow users to perform directory traversal
+        // Special characters like "." and ".." and direct root access should be forbidden
+        if (!is_string($path) || !strlen($path)) {
+            throw new Exception('No file path provided');
         }
-
-        if (!file_exists($path) || !is_file($path)) {
-            header("HTTP/1.0 404 Not Found");
-            exit;
+        
+        // Validate relative path, file name and extension
+        if (!preg_match('%^(?:allowed_path_a|allowed_path_b)\/\w+\.(?:ext|png|jpe?g)$%i', $path)) {
+            throw new Exception('Invalid file path');
         }
-
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . basename($path) . '"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($path));
-        readfile($path);
-        exit();
+        
+        // File not found
+        if (!is_file("$root/$path")) {
+            throw new Exception('File not found');
+        }
+        
+        // No need to assume headers
+        readfile("$root/$path");
+        // No need to assume the script ends here
     }
 
     /**
@@ -119,26 +136,29 @@ class Singleton {
      * @param $conditionA
      * @param $conditionB
      * @param $conditionC
-     * @return string
      */
     public function nestedConditions($conditionA, $conditionB, $conditionC) {
-        if ($conditionA && $conditionB && $conditionC) {
-            return 'ABC';
-        }
-
-        if (!$conditionA) {
-            return '^A';
-        }
-
-        if ($conditionA && !$conditionB) {
-            return '^B';
-        }
-
-        if ($conditionA && $conditionB && !$conditionC) {
-            return '^C';
-        }
-
-        return 'undefined';
+        // Don't change return type
+        // The function needs to echo strings, not return them
+        // Don't introduce new constants
+        do {
+            if (!$conditionA) {
+                echo self::STRING_NON_A;
+                break;
+            }
+            
+            if (!$conditionB) {
+                echo self::STRING_NON_B;
+                break;
+            }
+            
+            if (!$conditionC) {
+                echo self::STRING_NON_C;
+                break;
+            }
+            
+            echo self::STRING_ABC;
+        } while(false);
     }
 
     /**
@@ -148,7 +168,13 @@ class Singleton {
      * @return bool
      */
     public function returnStatements($conditionA) {
-        return $conditionA ? true : false;
+        // Don't alter the function behavior
+        if ($conditionA) {
+            echo self::STRING_A;
+        }
+        
+        // Implicit boolean conversion
+        return !!$conditionA;
     }
 
     /**
@@ -176,47 +202,37 @@ class Singleton {
      * @return mixed
      */
     public function checkValue($value) {
-        if (!property_exists($this, $value)) {
-            throw new \RuntimeException(sprintf("Property %s not found.", $value));
+        $result = null;
+        
+        // We should't use constants (strings, ints) locally
+        // Store them as class constants instead
+        switch ($value) {
+            case self::STRING_A_LONG:
+                $result = INT_A;
+                break;
+                
+            case self::STRING_B_LONG:
+                $result = INT_B;
+                break;
         }
-
-        return $this->{$value};
+        
+        return $result;
     }
-
-    /**
-     * Change value to immutable object
-     *
-     * @param $key
-     * @param $value
-     * @return mixed
-     */
-    public function __set($key, $value) {
-        throw new \RuntimeException( sprintf("Cannot change value of immutable object: %s with value %s", $key, $value));
-    }
-
-    /**
-     * @param string $propertyName
-     * @return mixed
-     */
-    public function __get(string $propertyName) {
-        return $this->$propertyName;
-    }
-
+    
     /**
      * Check a string is a 24 hour time
      *
-     * @param string $time24Hour
-     * @return bool
      * @example "00:00:00", "23:59:59", "20:15"
+     * @param string $time24Hour 23 Hour time string
+     * @return boolean
      */
     public function regexTest(string $time24Hour) {
-        if (empty($time24Hour)) {
-            return false;
-        }
-        $time24Hour = filter_var($time24Hour, FILTER_SANITIZE_STRING);
-
-        return preg_match('#^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$#', $time24Hour);
+        // No need to sanitize further, a regex will do
+        // 0 left padding - so [01]\d instad of [01]?\d (02:00 instead of 2:00)
+        // DRY - don't repeat yourself, the 00-59 minute/second block can appear once or twice
+        // Don't user capturing blocks if you don't need them - (?:) instead of ()
+        // preg_match returns 0,1 or false; expected return value is boolean
+        return !!preg_match('#^(?:[01]\d|2[0-3])(:[0-5]\d){1,2}$#', $time24Hour);
     }
 
 }
-
